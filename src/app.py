@@ -5,7 +5,9 @@ File chính ghép nối tất cả các thành phần: Tools + Prompts + Test Ca
 
 import json
 import os
+import re
 import sys
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 # Đảm bảo import các module cùng thư mục src/ hoạt động mượt mà
@@ -51,26 +53,160 @@ def run_baseline_chatbot(user_query: str, provider):
     return response
 
 
+SPECIALTIES = [
+    "Tim mạch", "Da liễu", "Tai Mũi Họng", "Tiêu hóa", "Thần kinh",
+    "Cơ xương khớp", "Mắt", "Nhi khoa", "Sản phụ khoa", "Răng Hàm Mặt",
+]
+
+
+def normalize_text(text: str) -> str:
+    return text.lower().strip()
+
+
+def extract_specialty(user_query: str, specialty_observation: str = "") -> str:
+    combined = f"{user_query}\n{specialty_observation}"
+    combined_lower = normalize_text(combined)
+    aliases = {
+        "nhi": "Nhi khoa",
+        "nha khoa": "Răng Hàm Mặt",
+        "răng": "Răng Hàm Mặt",
+        "rhm": "Răng Hàm Mặt",
+        "da liễu": "Da liễu",
+        "tim mạch": "Tim mạch",
+        "tai mũi họng": "Tai Mũi Họng",
+        "tiêu hóa": "Tiêu hóa",
+        "cơ xương khớp": "Cơ xương khớp",
+    }
+    for key, value in aliases.items():
+        if key in combined_lower:
+            return value
+    for specialty in SPECIALTIES:
+        if specialty.lower() in combined_lower:
+            return specialty
+    return ""
+
+
+def extract_location(user_query: str) -> str:
+    text = normalize_text(user_query)
+    if "hà nội" in text or "ha noi" in text:
+        return "Hà Nội"
+    if "tp.hcm" in text or "hồ chí minh" in text or "ho chi minh" in text or "sài gòn" in text:
+        return "TP.HCM"
+    if "đà nẵng" in text or "da nang" in text:
+        return "Đà Nẵng"
+    return ""
+
+
+def extract_date(user_query: str) -> str:
+    text = normalize_text(user_query)
+    explicit = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", user_query)
+    if explicit:
+        return explicit.group(1)
+    today = datetime.now().date()
+    if "ngày mai" in text or "mai" in text:
+        return (today + timedelta(days=1)).isoformat()
+    if "hôm nay" in text:
+        return today.isoformat()
+    return ""
+
+
+def extract_patient_id(user_query: str) -> str:
+    match = re.search(r"\b(patient_id|benh_nhan|patient)\s*[:=]?\s*([A-Za-z0-9_-]+)\b", user_query, re.IGNORECASE)
+    return match.group(2) if match else ""
+
+
+def extract_doctor_id(user_query: str) -> str:
+    match = re.search(r"\b(doctor_id|bac_si|doctor)\s*[:=]?\s*([A-Za-z0-9_-]+)\b", user_query, re.IGNORECASE)
+    return match.group(2) if match else ""
+
+
+def extract_time_slot(user_query: str) -> str:
+    match = re.search(r"\b(20\d{2}-\d{2}-\d{2}\s+\d{2}:\d{2})\b", user_query)
+    return match.group(1) if match else ""
+
+
+def has_invalid_datetime(user_query: str) -> bool:
+    invalid_date = re.search(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b", user_query)
+    invalid_time = re.search(r"\b([2-9]\d):([0-5]\d)\b", user_query)
+    if invalid_time and int(invalid_time.group(1)) > 23:
+        return True
+    if invalid_date:
+        day, month = int(invalid_date.group(1)), int(invalid_date.group(2))
+        return day > 31 or month > 12
+    return False
+
+
+def run_tool_step(step: int, thought: str, action_name: str, *args) -> str:
+    print(f"\n--- 🔄 Vòng lặp ReAct (Step {step}/{MAX_ITERATIONS}) ---")
+    print(f"Thought: {thought}")
+    print(f"Action: {action_name}[{', '.join(args)}]")
+    observation = AVAILABLE_TOOLS[action_name](*args)
+    print(f"Observation: {observation}")
+    return observation
+
+
 def run_react_agent(user_query: str, provider):
     """
-    Dựng vòng lặp ReAct Agent (Thought -> Action -> Observation) có Guardrails.
+    Dựng vòng lặp ReAct Agent (Thought -> Action -> Observation) có guardrails.
     """
     print(f"\n🤖 [REACT AGENT] Câu hỏi: {user_query}")
-    print("\n--- 🔄 Vòng lặp ReAct (Step 1/3) ---")
-    print("🧠 Thought: Cần đánh giá mức độ khẩn cấp trước.")
-    print("🛠️ Action: classify_urgency[symptoms]")
-    obs1 = AVAILABLE_TOOLS["classify_urgency"](user_query)
-    print(f"👁️ Observation: {obs1}")
+    text = normalize_text(user_query)
+    step = 0
+    observations = []
 
-    print("\n--- 🔄 Vòng lặp ReAct (Step 2/3) ---")
-    print("🧠 Thought: Cần gợi ý chuyên khoa phù hợp từ triệu chứng.")
-    print("🛠️ Action: suggest_specialty[symptoms]")
-    obs2 = AVAILABLE_TOOLS["suggest_specialty"](user_query)
-    print(f"👁️ Observation: {obs2}")
+    if has_invalid_datetime(user_query):
+        print("\n--- 🛡️ GUARDRAIL ---")
+        print("Thought: Người dùng nhập ngày hoặc giờ không hợp lệ, cần dừng trước khi gọi tool.")
+        print("Final Answer: Thời gian bạn nhập chưa hợp lệ. Vui lòng nhập ngày theo YYYY-MM-DD và giờ theo HH:MM.")
+        return
 
-    print("\n--- 🔄 Vòng lặp ReAct (Step 3/3) ---")
-    print("🧠 Thought: Đã có đủ thông tin để trả lời định hướng ban đầu.")
-    print("🏁 Final Answer: Bạn nên xem kết quả phân loại và gợi ý chuyên khoa ở trên để quyết định bước tiếp theo.")
+    wants_cancel = bool(re.search(r"\b(cancel|huy)\b", text)) or "hủy" in text
+    if wants_cancel:
+        appointment_match = re.search(r"\b(APT\d+|LK\d+)\b", user_query, re.IGNORECASE)
+        appointment_id = appointment_match.group(1) if appointment_match else ""
+        step += 1
+        observations.append(run_tool_step(step, "Người dùng muốn hủy lịch khám, cần gọi công cụ hủy lịch.", "cancel_appointment", appointment_id))
+        print("\nThought: Đã có kết quả hủy lịch.")
+        print("Final Answer: Tôi đã xử lý yêu cầu hủy lịch theo kết quả Observation ở trên.")
+        return
+
+    if any(keyword in text for keyword in ["đau", "sốt", "ho", "khó thở", "mẩn", "ngứa", "triệu chứng", "mất ngủ"]):
+        step += 1
+        observations.append(run_tool_step(step, "Cần phân loại mức độ khẩn cấp trước khi tư vấn tiếp.", "classify_urgency", user_query))
+        if any(keyword in text for keyword in ["đau ngực dữ dội", "khó thở", "ngất", "vã mồ hôi"]):
+            print("\nThought: Có dấu hiệu nguy hiểm, cần ưu tiên an toàn thay vì đặt lịch thường.")
+            print("Final Answer: Triệu chứng có thể nguy hiểm. Bạn nên đến cơ sở y tế gần nhất hoặc gọi cấp cứu ngay, không nên chờ lịch khám thông thường.")
+            return
+
+    specialty_observation = ""
+    if step < MAX_ITERATIONS and any(keyword in text for keyword in ["khoa", "chuyên khoa", "khám", "triệu chứng", "đau", "sốt", "ho", "mẩn", "ngứa", "mất ngủ"]):
+        step += 1
+        specialty_observation = run_tool_step(step, "Cần xác định chuyên khoa phù hợp.", "suggest_specialty", user_query)
+        observations.append(specialty_observation)
+
+    specialty = extract_specialty(user_query, specialty_observation)
+    location = extract_location(user_query)
+    date = extract_date(user_query)
+    wants_doctor_search = any(keyword in text for keyword in ["tìm", "bác sĩ", "còn lịch", "đặt lịch"])
+
+    if step < MAX_ITERATIONS and wants_doctor_search:
+        if specialty and location and date:
+            step += 1
+            observations.append(run_tool_step(step, "Đã có chuyên khoa, địa điểm và ngày khám nên cần tìm bác sĩ còn lịch.", "find_available_doctors", specialty, location, date))
+        elif "đặt lịch" in text:
+            print("\nThought: Người dùng muốn đặt lịch nhưng còn thiếu chuyên khoa, địa điểm hoặc ngày khám.")
+            print("Final Answer: Bạn vui lòng cung cấp thêm chuyên khoa, địa điểm khám và ngày muốn khám để tôi tìm lịch phù hợp.")
+            return
+
+    patient_id = extract_patient_id(user_query)
+    doctor_id = extract_doctor_id(user_query)
+    time_slot = extract_time_slot(user_query)
+    if step < MAX_ITERATIONS and "đặt" in text and patient_id and doctor_id and time_slot:
+        step += 1
+        observations.append(run_tool_step(step, "Người dùng đã cung cấp đủ patient_id, doctor_id và time_slot nên có thể đặt lịch.", "book_appointment", patient_id, doctor_id, time_slot))
+
+    print("\nThought: Tôi đã có đủ thông tin từ các Observation để trả lời.")
+    print("Final Answer: Tôi đã thực hiện các bước phù hợp ở trên. Bạn có thể xem Observation để biết mức độ khẩn cấp, chuyên khoa gợi ý, lịch bác sĩ hoặc trạng thái đặt/hủy lịch.")
 
 
 def main():
