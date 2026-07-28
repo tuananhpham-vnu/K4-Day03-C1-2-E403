@@ -54,7 +54,7 @@ SPECIALTY_MAP = {
         "nấm da", "vẩy nến", "rụng tóc", "da khô"
     ],
     "Tai Mũi Họng": [
-        "đau họng", "viêm họng", "ho", "sổ mũi", "nghẹt mũi",
+        "đau họng", "viêm họng", "sổ mũi", "nghẹt mũi",
         "ù tai", "đau tai", "viêm xoang", "khàn tiếng", "amidan"
     ],
     "Tiêu hóa": [
