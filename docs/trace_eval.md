@@ -106,7 +106,7 @@ Final Answer: Bạn vui lòng cung cấp thêm chuyên khoa, địa điểm khá
 
 **Đánh giá Role 1**: `FAIL` - Test case đã cung cấp `patient_id`, `doctor_id`, `time_slot`, nhưng agent không gọi `book_appointment`. Ngoài ra `doctor_id D103` không khớp dữ liệu mock hiện có, vốn dùng mã dạng `BS001`.
 
-**Đánh giá Role 5**: Trace giúp phát hiện lỗi điều phối: agent ưu tiên luồng tìm chuyên khoa/địa điểm trước, làm chặn mất luồng đặt lịch trực tiếp. Sau khi bỏ từ khóa `ho`, lỗi match nhầm Tai Mũi Họng đã hết.
+**Đánh giá Role 5**: Trace giúp phát hiện lỗi điều phối: agent ưu tiên luồng tìm chuyên khoa/địa điểm trước, làm chặn mất luồng đặt lịch trực tiếp.
 
 ### Test Case #13 - Guardrail cấp cứu
 
