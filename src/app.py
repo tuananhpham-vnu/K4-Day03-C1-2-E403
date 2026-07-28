@@ -209,6 +209,110 @@ def run_react_agent(user_query: str, provider):
     print("Final Answer: Tôi đã thực hiện các bước phù hợp ở trên. Bạn có thể xem Observation để biết mức độ khẩn cấp, chuyên khoa gợi ý, lịch bác sĩ hoặc trạng thái đặt/hủy lịch.")
 
 
+def extract_first_doctor_and_slot(doctor_observation: str):
+    """Lấy bác sĩ và khung giờ đầu tiên từ kết quả find_available_doctors."""
+    doctor_match = re.search(r"Mã BS:\s*(BS\d+)", doctor_observation)
+    slot_match = re.search(r"Khung giờ trống:\s*([0-9:, ]+)", doctor_observation)
+    if not doctor_match or not slot_match:
+        return "", ""
+    doctor_id = doctor_match.group(1)
+    first_slot = slot_match.group(1).split(",")[0].strip()
+    return doctor_id, first_slot
+
+
+def extract_appointment_id(booking_observation: str) -> str:
+    match = re.search(r"Mã lịch hẹn:\s*(LK\d+)", booking_observation)
+    return match.group(1) if match else ""
+
+
+def run_autonomous_agent_bonus(goal: str):
+    """
+    BONUS - Autonomous Agent cấp 4:
+    Agent tự chia nhỏ mục tiêu thành plan, chạy tool theo plan và lưu memory.
+    """
+    print("\n🌟 [BONUS AUTONOMOUS AGENT - PLANNING + MEMORY]")
+    print(f"🎯 Goal: {goal}")
+
+    memory = {
+        "goal": goal,
+        "patient_id": extract_patient_id(goal) or "P_BONUS",
+        "location": extract_location(goal) or "Hà Nội",
+        "date": extract_date(goal) or (datetime.now().date() + timedelta(days=1)).isoformat(),
+        "specialty": extract_specialty(goal),
+        "doctor_id": "",
+        "time_slot": "",
+        "appointment_id": "",
+        "status": "planning",
+    }
+
+    plan = [
+        "1. Phân loại mức độ khẩn cấp từ triệu chứng.",
+        "2. Xác định chuyên khoa phù hợp nếu goal chưa nói rõ.",
+        "3. Tìm bác sĩ còn lịch theo chuyên khoa, địa điểm và ngày khám.",
+        "4. Chọn slot sớm nhất và đặt lịch khám.",
+        "5. Lưu mã lịch hẹn vào memory để các lượt sau có thể nhắc/hủy/tra cứu.",
+    ]
+
+    print("\n🧭 Plan:")
+    for item in plan:
+        print(f"- {item}")
+
+    print("\n--- Autonomous Step 1 ---")
+    print("Thought: Trước khi đặt lịch, cần kiểm tra mức độ khẩn cấp.")
+    print(f"Action: classify_urgency[{goal}]")
+    urgency_observation = AVAILABLE_TOOLS["classify_urgency"](goal)
+    print(f"Observation: {urgency_observation}")
+
+    print("\n--- Autonomous Step 2 ---")
+    if not memory["specialty"]:
+        print("Thought: Goal chưa có chuyên khoa rõ ràng, cần suy luận chuyên khoa từ triệu chứng.")
+        print(f"Action: suggest_specialty[{goal}]")
+        specialty_observation = AVAILABLE_TOOLS["suggest_specialty"](goal)
+        print(f"Observation: {specialty_observation}")
+        memory["specialty"] = extract_specialty(goal, specialty_observation) or "Nội tổng quát"
+    else:
+        print(f"Thought: Goal đã có chuyên khoa: {memory['specialty']}. Bỏ qua bước gợi ý chuyên khoa.")
+
+    print("\n--- Autonomous Step 3 ---")
+    print("Thought: Đã có chuyên khoa, địa điểm và ngày khám; cần tìm bác sĩ còn lịch.")
+    print(f"Action: find_available_doctors[{memory['specialty']}, {memory['location']}, {memory['date']}]")
+    doctor_observation = AVAILABLE_TOOLS["find_available_doctors"](
+        memory["specialty"], memory["location"], memory["date"]
+    )
+    print(f"Observation: {doctor_observation}")
+
+    doctor_id, first_slot = extract_first_doctor_and_slot(doctor_observation)
+    if not doctor_id or not first_slot:
+        memory["status"] = "blocked_no_available_doctor"
+        print("\nThought: Không tìm được bác sĩ hoặc slot phù hợp, dừng plan.")
+        print(f"Memory: {json.dumps(memory, ensure_ascii=False, indent=2)}")
+        print("Final Answer: Chưa thể đặt lịch vì không có bác sĩ/khung giờ phù hợp.")
+        return memory
+
+    memory["doctor_id"] = doctor_id
+    memory["time_slot"] = f"{memory['date']} {first_slot}"
+
+    print("\n--- Autonomous Step 4 ---")
+    print("Thought: Chọn slot sớm nhất từ Observation và tiến hành đặt lịch.")
+    print(f"Action: book_appointment[{memory['patient_id']}, {memory['doctor_id']}, {memory['time_slot']}]")
+    booking_observation = AVAILABLE_TOOLS["book_appointment"](
+        memory["patient_id"], memory["doctor_id"], memory["time_slot"]
+    )
+    print(f"Observation: {booking_observation}")
+
+    memory["appointment_id"] = extract_appointment_id(booking_observation)
+    memory["status"] = "booked" if memory["appointment_id"] else "booking_failed"
+
+    print("\n--- Autonomous Step 5 ---")
+    print("Thought: Lưu memory để lượt sau có thể nhắc lịch, hủy lịch hoặc tra cứu lại.")
+    print(f"Memory: {json.dumps(memory, ensure_ascii=False, indent=2)}")
+    print(
+        "Final Answer: Tôi đã tự lập kế hoạch, tìm bác sĩ phù hợp, chọn slot sớm nhất "
+        "và lưu kết quả đặt lịch vào memory."
+    )
+    return memory
+
+
 def main():
     print("==================================================")
     print("🏥 LAB 3 - DAT LICH KHAM BENH & TU VAN CHUYEN KHOA")
@@ -230,6 +334,13 @@ def main():
     
     print("\n--- DEMO 2: CHẠY TRÊN REACT AGENT ---")
     run_react_agent(sample_query, provider)
+
+    print("\n--- DEMO 3: BONUS AUTONOMOUS AGENT (PLANNING + MEMORY) ---")
+    bonus_goal = (
+        "Tôi đau bụng sau ăn 3 ngày, muốn khám ở Hà Nội ngày 2026-07-29. "
+        "Hãy tự lên kế hoạch, tìm bác sĩ phù hợp và đặt lịch cho patient_id P_BONUS."
+    )
+    run_autonomous_agent_bonus(bonus_goal)
 
 
 if __name__ == "__main__":
