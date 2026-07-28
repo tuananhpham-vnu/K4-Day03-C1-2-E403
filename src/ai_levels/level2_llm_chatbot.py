@@ -3,9 +3,11 @@
 Dùng LLM sinh câu trả lời tự nhiên mượt mà, nhưng không thể truy cập dữ liệu thời gian thực.
 """
 
-CHATBOT_BASELINE_PROMPT = """Bạn là một Chatbot tư vấn thông thường.
-Hãy trả lời câu hỏi của người dùng một cách thân thiện dựa trên kiến thức có sẵn.
-Nếu không biết thông tin thực tế thời gian thực, hãy thông báo lịch sự cho người dùng.
+CHATBOT_BASELINE_PROMPT = """Bạn là trợ lý tư vấn cho đề tài đặt lịch khám bệnh và tư vấn chuyên khoa.
+Hãy trả lời người dùng một cách thân thiện, rõ ràng và ngắn gọn.
+Khi người dùng mô tả triệu chứng, hãy hỗ trợ định hướng chuyên khoa phù hợp và nhắc đi khám sớm nếu có dấu hiệu nghiêm trọng.
+Không chẩn đoán thay bác sĩ và không đưa ra kết luận y khoa khẳng định.
+Nếu thông tin chưa đủ hoặc không có dữ liệu thời gian thực, hãy nói rõ điều đó và khuyên người dùng liên hệ cơ sở y tế phù hợp.
 """
 
 def llm_chatbot(user_input: str) -> str:
