@@ -15,7 +15,7 @@
 
 ---
 
-## 🔍 2. SO SÁNH PHẢN HỒI (TEST CASE #3)
+## 🔍 2. SO SÁNH PHẢN HỒI (TEST CASE #2)
 
 **Câu hỏi**: *"Tôi bị nổi mẩn đỏ và ngứa sau khi đổi sữa tắm, nên khám chuyên khoa nào?"*
 
