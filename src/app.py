@@ -145,44 +145,100 @@ def run_tool_step(step: int, thought: str, action_name: str, *args) -> str:
     return observation
 
 
-def run_react_agent(user_query: str, provider):
+def run_react_agent(user_query: str, provider, emit_logs: bool = True):
     """
     Dựng vòng lặp ReAct Agent (Thought -> Action -> Observation) có guardrails.
     """
-    print(f"\n🤖 [REACT AGENT] Câu hỏi: {user_query}")
+    if emit_logs:
+        print(f"\n🤖 [REACT AGENT] Câu hỏi: {user_query}")
     text = normalize_text(user_query)
     step = 0
     observations = []
+    trace = []
+    final_answer = ""
+    guardrail_triggered = False
 
     if has_invalid_datetime(user_query):
-        print("\n--- 🛡️ GUARDRAIL ---")
-        print("Thought: Người dùng nhập ngày hoặc giờ không hợp lệ, cần dừng trước khi gọi tool.")
-        print("Final Answer: Thời gian bạn nhập chưa hợp lệ. Vui lòng nhập ngày theo YYYY-MM-DD và giờ theo HH:MM.")
-        return
+        final_answer = "Thời gian bạn nhập chưa hợp lệ. Vui lòng nhập ngày theo YYYY-MM-DD và giờ theo HH:MM."
+        guardrail_triggered = True
+        if emit_logs:
+            print("\n--- 🛡️ GUARDRAIL ---")
+            print("Thought: Người dùng nhập ngày hoặc giờ không hợp lệ, cần dừng trước khi gọi tool.")
+            print(f"Final Answer: {final_answer}")
+        return {
+            "question": user_query,
+            "trace": trace,
+            "final_answer": final_answer,
+            "guardrail_triggered": guardrail_triggered,
+        }
 
     wants_cancel = bool(re.search(r"\b(cancel|huy)\b", text)) or "hủy" in text
     if wants_cancel:
         appointment_match = re.search(r"\b(APT\d+|LK\d+)\b", user_query, re.IGNORECASE)
         appointment_id = appointment_match.group(1) if appointment_match else ""
         step += 1
-        observations.append(run_tool_step(step, "Người dùng muốn hủy lịch khám, cần gọi công cụ hủy lịch.", "cancel_appointment", appointment_id))
-        print("\nThought: Đã có kết quả hủy lịch.")
-        print("Final Answer: Tôi đã xử lý yêu cầu hủy lịch theo kết quả Observation ở trên.")
-        return
+        thought = "Người dùng muốn hủy lịch khám, cần gọi công cụ hủy lịch."
+        action_name = "cancel_appointment"
+        action_args = [appointment_id]
+        observation = run_tool_step(step, thought, action_name, *action_args)
+        observations.append(observation)
+        trace.append({
+            "step": step,
+            "thought": thought,
+            "action": {"name": action_name, "args": action_args},
+            "observation": observation,
+        })
+        final_answer = "Tôi đã xử lý yêu cầu hủy lịch theo kết quả Observation ở trên."
+        if emit_logs:
+            print("\nThought: Đã có kết quả hủy lịch.")
+            print(f"Final Answer: {final_answer}")
+        return {
+            "question": user_query,
+            "trace": trace,
+            "final_answer": final_answer,
+            "guardrail_triggered": guardrail_triggered,
+        }
 
     if any(keyword in text for keyword in ["đau", "sốt", "ho", "khó thở", "mẩn", "ngứa", "triệu chứng", "mất ngủ"]):
         step += 1
-        observations.append(run_tool_step(step, "Cần phân loại mức độ khẩn cấp trước khi tư vấn tiếp.", "classify_urgency", user_query))
+        thought = "Cần phân loại mức độ khẩn cấp trước khi tư vấn tiếp."
+        action_name = "classify_urgency"
+        action_args = [user_query]
+        observation = run_tool_step(step, thought, action_name, *action_args)
+        observations.append(observation)
+        trace.append({
+            "step": step,
+            "thought": thought,
+            "action": {"name": action_name, "args": action_args},
+            "observation": observation,
+        })
         if any(keyword in text for keyword in ["đau ngực dữ dội", "khó thở", "ngất", "vã mồ hôi"]):
-            print("\nThought: Có dấu hiệu nguy hiểm, cần ưu tiên an toàn thay vì đặt lịch thường.")
-            print("Final Answer: Triệu chứng có thể nguy hiểm. Bạn nên đến cơ sở y tế gần nhất hoặc gọi cấp cứu ngay, không nên chờ lịch khám thông thường.")
-            return
+            final_answer = "Triệu chứng có thể nguy hiểm. Bạn nên đến cơ sở y tế gần nhất hoặc gọi cấp cứu ngay, không nên chờ lịch khám thông thường."
+            guardrail_triggered = True
+            if emit_logs:
+                print("\nThought: Có dấu hiệu nguy hiểm, cần ưu tiên an toàn thay vì đặt lịch thường.")
+                print(f"Final Answer: {final_answer}")
+            return {
+                "question": user_query,
+                "trace": trace,
+                "final_answer": final_answer,
+                "guardrail_triggered": guardrail_triggered,
+            }
 
     specialty_observation = ""
     if step < MAX_ITERATIONS and any(keyword in text for keyword in ["khoa", "chuyên khoa", "khám", "triệu chứng", "đau", "sốt", "ho", "mẩn", "ngứa", "mất ngủ"]):
         step += 1
-        specialty_observation = run_tool_step(step, "Cần xác định chuyên khoa phù hợp.", "suggest_specialty", user_query)
+        thought = "Cần xác định chuyên khoa phù hợp."
+        action_name = "suggest_specialty"
+        action_args = [user_query]
+        specialty_observation = run_tool_step(step, thought, action_name, *action_args)
         observations.append(specialty_observation)
+        trace.append({
+            "step": step,
+            "thought": thought,
+            "action": {"name": action_name, "args": action_args},
+            "observation": specialty_observation,
+        })
 
     specialty = extract_specialty(user_query, specialty_observation)
     location = extract_location(user_query)
@@ -192,21 +248,84 @@ def run_react_agent(user_query: str, provider):
     if step < MAX_ITERATIONS and wants_doctor_search:
         if specialty and location and date:
             step += 1
-            observations.append(run_tool_step(step, "Đã có chuyên khoa, địa điểm và ngày khám nên cần tìm bác sĩ còn lịch.", "find_available_doctors", specialty, location, date))
+            thought = "Đã có chuyên khoa, địa điểm và ngày khám nên cần tìm bác sĩ còn lịch."
+            action_name = "find_available_doctors"
+            action_args = [specialty, location, date]
+            observation = run_tool_step(step, thought, action_name, *action_args)
+            observations.append(observation)
+            trace.append({
+                "step": step,
+                "thought": thought,
+                "action": {"name": action_name, "args": action_args},
+                "observation": observation,
+            })
         elif "đặt lịch" in text:
-            print("\nThought: Người dùng muốn đặt lịch nhưng còn thiếu chuyên khoa, địa điểm hoặc ngày khám.")
-            print("Final Answer: Bạn vui lòng cung cấp thêm chuyên khoa, địa điểm khám và ngày muốn khám để tôi tìm lịch phù hợp.")
-            return
+            final_answer = "Bạn vui lòng cung cấp thêm chuyên khoa, địa điểm khám và ngày muốn khám để tôi tìm lịch phù hợp."
+            if emit_logs:
+                print("\nThought: Người dùng muốn đặt lịch nhưng còn thiếu chuyên khoa, địa điểm hoặc ngày khám.")
+                print(f"Final Answer: {final_answer}")
+            return {
+                "question": user_query,
+                "trace": trace,
+                "final_answer": final_answer,
+                "guardrail_triggered": guardrail_triggered,
+            }
 
     patient_id = extract_patient_id(user_query)
     doctor_id = extract_doctor_id(user_query)
     time_slot = extract_time_slot(user_query)
     if step < MAX_ITERATIONS and "đặt" in text and patient_id and doctor_id and time_slot:
         step += 1
-        observations.append(run_tool_step(step, "Người dùng đã cung cấp đủ patient_id, doctor_id và time_slot nên có thể đặt lịch.", "book_appointment", patient_id, doctor_id, time_slot))
+        thought = "Người dùng đã cung cấp đủ patient_id, doctor_id và time_slot nên có thể đặt lịch."
+        action_name = "book_appointment"
+        action_args = [patient_id, doctor_id, time_slot]
+        observation = run_tool_step(step, thought, action_name, *action_args)
+        observations.append(observation)
+        trace.append({
+            "step": step,
+            "thought": thought,
+            "action": {"name": action_name, "args": action_args},
+            "observation": observation,
+        })
 
-    print("\nThought: Tôi đã có đủ thông tin từ các Observation để trả lời.")
-    print("Final Answer: Tôi đã thực hiện các bước phù hợp ở trên. Bạn có thể xem Observation để biết mức độ khẩn cấp, chuyên khoa gợi ý, lịch bác sĩ hoặc trạng thái đặt/hủy lịch.")
+    final_answer = "Tôi đã thực hiện các bước phù hợp ở trên. Bạn có thể xem Observation để biết mức độ khẩn cấp, chuyên khoa gợi ý, lịch bác sĩ hoặc trạng thái đặt/hủy lịch."
+    if emit_logs:
+        print("\nThought: Tôi đã có đủ thông tin từ các Observation để trả lời.")
+        print(f"Final Answer: {final_answer}")
+    return {
+        "question": user_query,
+        "trace": trace,
+        "final_answer": final_answer,
+        "guardrail_triggered": guardrail_triggered,
+    }
+
+
+def run_suite_and_export(tests, provider, output_path):
+    results = []
+    for test_case in tests:
+        question = test_case.get("question", "")
+        print(f"\n=== TEST CASE {test_case.get('id')} ===")
+        baseline_response = run_baseline_chatbot(question, provider)
+        react_result = run_react_agent(question, provider, emit_logs=True)
+        results.append({
+            "id": test_case.get("id"),
+            "category": test_case.get("category", ""),
+            "question": question,
+            "expected_behavior": test_case.get("expected_behavior", ""),
+            "baseline_response": baseline_response,
+            "react_result": react_result,
+        })
+
+    payload = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "provider": getattr(provider, "__class__", type(provider)).__name__,
+        "model": getattr(provider, "model_name", ""),
+        "results": results,
+    }
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    return output_path
 
 
 def main():
@@ -221,15 +340,18 @@ def main():
     
     tests = load_test_cases()
     print(f"✅ Đã tải thành công {len(tests)} Test Cases từ config/test_cases.json\n")
-    
-    # Chạy thử một câu phù hợp với baseline chatbot
+
     sample_query = tests[1]["question"] if len(tests) > 1 else "Tôi bị nổi mẩn đỏ sau khi đổi sữa tắm, nên khám chuyên khoa nào?"
-    
+
     print("--- DEMO 1: CHẠY TRÊN CHATBOT BASELINE ---")
     run_baseline_chatbot(sample_query, provider)
-    
+
     print("\n--- DEMO 2: CHẠY TRÊN REACT AGENT ---")
     run_react_agent(sample_query, provider)
+
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs", "run_log.json")
+    exported = run_suite_and_export(tests, provider, log_path)
+    print(f"\n📝 Đã xuất log toàn bộ test case ra: {exported}")
 
 
 if __name__ == "__main__":
