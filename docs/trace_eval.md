@@ -7,11 +7,11 @@
 
 | Tiêu chí | Điểm (1-5) | Lý do đánh giá |
 | :--- | :---: | :--- |
-| 🧠 **Multi-step Reasoning** | `4/5` | Cần suy luận từ tra cứu thời tiết đến chọn trang phục. |
-| 🛠️ **Tool Interaction** | `5/5` | Cần tra cứu dữ liệu thời gian thực qua API thời tiết/chuyến bay. |
-| 🔀 **Dynamic Decision** | `4/5` | Kết quả bước trước quyết định hành động bước sau. |
-| ⏳ **Long Horizon** | `3/5` | Quy trình gồm 2-3 bước xử lý ngắn. |
-| **TỔNG ĐIỂM FIT** | **16/20** | **KẾT LUẬN: BÀI TOÁN RẤT NÊN DÙNG REACT AGENT!** |
+| 🧠 **Multi-step Reasoning** | `5/5` | Cần suy luận qua nhiều bước: phân loại mức độ khẩn cấp, gợi ý chuyên khoa, tìm bác sĩ phù hợp, chọn khung giờ và đặt lịch. |
+| 🛠️ **Tool Interaction** | `5/5` | Bài toán phụ thuộc mạnh vào tool: `classify_urgency`, `suggest_specialty`, `find_available_doctors`, `book_appointment`, `send_appointment_reminder`. |
+| 🔀 **Dynamic Decision** | `5/5` | Kết quả phân loại khẩn cấp quyết định luồng tiếp theo: cấp cứu ngay, cần khám sớm, hoặc có thể đặt lịch thường. |
+| ⏳ **Long Horizon** | `4/5` | Một yêu cầu đầy đủ có thể gồm 4-5 bước liên tiếp từ đánh giá triệu chứng đến đặt lịch và gửi nhắc lịch. |
+| **TỔNG ĐIỂM FIT** | **19/20** | **KẾT LUẬN: BÀI TOÁN ĐẶT LỊCH KHÁM & TƯ VẤN CHUYÊN KHOA RẤT PHÙ HỢP VỚI REACT AGENT!** |
 
 ---
 
