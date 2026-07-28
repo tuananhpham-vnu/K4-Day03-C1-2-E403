@@ -1,0 +1,43 @@
+flowchart TD
+    A([Người dùng đặt câu hỏi]) --> B{Có dấu hiệu cấp cứu<br/>hoặc yêu cầu nguy hiểm?}
+
+    B -->|Có| C[Nhánh Safety Guardrail]
+    C --> C1[Khuyên gọi cấp cứu<br/>hoặc đến cơ sở y tế gần nhất]
+    C --> C2[Từ chối kê đơn<br/>hoặc chỉ định liều thuốc]
+
+    B -->|Không| D{Ngày giờ / thông tin đầu vào<br/>có hợp lệ không?}
+    D -->|Không hợp lệ| E[Hỏi lại thông tin hợp lệ<br/>VD: YYYY-MM-DD, HH:MM]
+
+    D -->|Hợp lệ| F{Người dùng chỉ hỏi<br/>tư vấn chung?}
+    F -->|Có| G[Nhánh Chatbot Baseline]
+    G --> G1[Trả lời kiến thức y tế phổ thông]
+    G --> G2[Gợi ý chuyên khoa nếu đơn giản]
+    G --> G3[Nhắc: không thay thế<br/>chẩn đoán của bác sĩ]
+
+    F -->|Không / cần hành động thật| H{Cần dùng tool nào?}
+
+    H -->|Phân loại khẩn cấp| I[classify_urgency symptoms]
+    H -->|Gợi ý chuyên khoa| J[suggest_specialty symptoms]
+    H -->|Tìm bác sĩ còn lịch| K[find_available_doctors specialty location date]
+    H -->|Đặt lịch khám| L[book_appointment patient_id doctor_id time_slot]
+    H -->|Gửi nhắc lịch| M[send_appointment_reminder appointment_id]
+
+    I --> N{Cần xử lý tiếp?}
+    J --> N
+    K --> N
+    L --> N
+    M --> O[Câu trả lời cuối]
+
+    N -->|Cần tìm bác sĩ| K
+    N -->|Cần đặt lịch| L
+    N -->|Cần gửi nhắc| M
+    N -->|Đủ thông tin| O
+
+    O --> P([Kết thúc])
+
+    subgraph Examples[Ví dụ phân luồng]
+        X1["Đau răng nên khám khoa nào?"] --> Y1[Chatbot hoặc suggest_specialty]
+        X2["Tìm bác sĩ Da liễu ở Hà Nội ngày mai"] --> Y2[ReAct Agent + find_available_doctors]
+        X3["Đặt lịch cho patient_id P002 với doctor_id BS003"] --> Y3[ReAct Agent + book_appointment]
+        X4["Đau ngực dữ dội, khó thở"] --> Y4[Safety Guardrail]
+    end
