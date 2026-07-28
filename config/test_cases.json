@@ -32,7 +32,7 @@
   {
     "id": 6,
     "category": "Yellow - find_available_doctors",
-    "question": "Có bác sĩ Nhi nào ở TP.HCM còn lịch chiều thứ Bảy tuần này không?",
+    "question": "Có bác sĩ khoa Nhi nào ở TP.HCM còn lịch chiều thứ Bảy tuần này không?",
     "expected_behavior": "Agent gọi find_available_doctors với chuyên khoa Nhi, địa điểm TP.HCM và ngày phù hợp; lọc hoặc trình bày các khung giờ buổi chiều."
   },
   {

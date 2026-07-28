@@ -15,13 +15,30 @@
 
 ---
 
-## 🔍 2. SO SÁNH PHẢN HỒI (TEST CASE #3)
+## 🔍 2. SO SÁNH PHẢN HỒI (TEST CASE #2)
 
-**Câu hỏi**: *"Thời tiết ở Hà Nội hôm nay thế nào và tôi nên mặc gì đi chơi?"*
+**Câu hỏi**: *"Tôi bị nổi mẩn đỏ và ngứa sau khi đổi sữa tắm, nên khám chuyên khoa nào?"*
 
 ### 🤖 Chatbot Baseline:
-* **Phản hồi**: *"Tôi không có truy cập Internet thời gian thực nên không biết thời tiết hôm nay ở Hà Nội."*
-* **Nhận xét**: An toàn nhưng không giải quyết được nhu cầu thực tế của người dùng.
+* **Phản hồi**: *"Dựa trên mô tả của bạn, tình trạng nổi mẩn đỏ và ngứa sau khi đổi sữa tắm rất có thể là dấu hiệu của **viêm da tiếp xúc dị ứng** hoặc **kích ứng** do một thành phần nào đó trong sữa tắm mới gây ra.
+
+**Trước mắt, bạn nên làm gì?**
+
+1.  **Ngừng sử dụng ngay lập tức:** Hãy dừng dùng loại sữa tắm mới đó và quay lại dùng sản phẩm cũ mà bạn không bị dị ứng hoặc dùng các loại sữa tắm dịu nhẹ, không mùi, dành cho da nhạy cảm.
+2.  **Tránh gãi:** Cố gắng hết sức không gãi vùng da bị ngứa để tránh làm tổn thương da thêm, gây nhiễm trùng hoặc làm tình trạng nặng hơn.
+3.  **Giữ vùng da sạch sẽ và thoáng mát:** Tắm bằng nước mát hoặc nước ấm (không quá nóng) và lau khô nhẹ nhàng. Mặc quần áo rộng rãi, thoáng mát bằng chất liệu cotton.
+4.  **Chườm lạnh:** Bạn có thể dùng khăn sạch thấm nước mát hoặc đá bọc trong khăn mỏng để chườm nhẹ lên vùng da bị ngứa để giảm cảm giác khó chịu tạm thời.
+
+**Về việc khám chuyên khoa:**
+
+Để được chẩn đoán chính xác nguyên nhân và có phác đồ điều trị phù hợp nhất, bạn nên đến khám chuyên khoa **Da liễu**.
+
+*   **Bác sĩ Da liễu** sẽ thăm khám trực tiếp tình trạng da của bạn, hỏi rõ hơn về tiền sử dị ứng (nếu có), các sản phẩm bạn đã sử dụng và đưa ra lời khuyên cũng như kê đơn thuốc (kem bôi giảm ngứa, thuốc kháng histamin đường uống...) nếu cần thiết. Việc thăm khám sớm sẽ giúp bạn giảm bớt khó chịu và ngăn ngừa tình trạng trở nên nặng hơn.
+
+Phòng khám đa khoa của chúng tôi có đội ngũ bác sĩ Da liễu giàu kinh nghiệm và chuyên môn. Nếu bạn muốn, tôi có thể hỗ trợ bạn đặt lịch hẹn khám tại phòng khám của chúng ta để bác sĩ có thể kiểm tra trực tiếp.
+
+Bạn muốn đặt lịch vào thời gian nào thuận tiện cho mình? Rất mong bạn sớm khỏe lại!"*
+* **Nhận xét**: Câu hỏi về chuyên khoa nào nhưng câu trả lời dài dòng, chưa đúng trọng tâm
 
 ### 🧠 ReAct Agent:
 * **Thought 1**: Cần tra cứu thời tiết Hà Nội.
