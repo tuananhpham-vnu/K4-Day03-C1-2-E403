@@ -247,33 +247,37 @@ def classify_urgency(symptoms: str) -> str:
     Returns:
         str: Kết quả phân loại bao gồm mức độ khẩn cấp và lời khuyên hành động.
     """
-    if not symptoms or not symptoms.strip():
-        return "LỖI: Vui lòng mô tả triệu chứng để phân loại mức độ khẩn cấp."
+    try:
+        if not symptoms or not str(symptoms).strip():
+            return "LỖI: Vui lòng mô tả triệu chứng để phân loại mức độ khẩn cấp."
 
-    symptoms_lower = symptoms.lower().strip()
+        symptoms = str(symptoms)
+        symptoms_lower = symptoms.lower().strip()
 
-    # Kiểm tra theo thứ tự ưu tiên: khám sớm → thường
-    for level_key in ["khám sớm", "thường"]:
-        level_data = URGENCY_KEYWORDS[level_key]
-        matched = [kw for kw in level_data["keywords"] if kw in symptoms_lower]
-        if matched:
-            result = (
-                f"📋 KẾT QUẢ PHÂN LOẠI KHẨN CẤP:\n"
-                f"   Triệu chứng: {symptoms}\n"
-                f"   Từ khóa phát hiện: {', '.join(matched)}\n"
-                f"   Mức độ: {level_data['level']}\n"
-                f"   💡 Lời khuyên: {level_data['advice']}"
-            )
-            return result
+        # Kiểm tra theo thứ tự ưu tiên: khám sớm → thường
+        for level_key in ["khám sớm", "thường"]:
+            level_data = URGENCY_KEYWORDS[level_key]
+            matched = [kw for kw in level_data["keywords"] if kw in symptoms_lower]
+            if matched:
+                result = (
+                    f"📋 KẾT QUẢ PHÂN LOẠI KHẨN CẤP:\n"
+                    f"   Triệu chứng: {symptoms}\n"
+                    f"   Từ khóa phát hiện: {', '.join(matched)}\n"
+                    f"   Mức độ: {level_data['level']}\n"
+                    f"   💡 Lời khuyên: {level_data['advice']}"
+                )
+                return result
 
-    # Không khớp từ khóa nào → mặc định đặt lịch thường
-    return (
-        f"📋 KẾT QUẢ PHÂN LOẠI KHẨN CẤP:\n"
-        f"   Triệu chứng: {symptoms}\n"
-        f"   Mức độ: 🟢 CÓ THỂ ĐẶT LỊCH THƯỜNG\n"
-        f"   💡 Lời khuyên: Triệu chứng chưa rõ ràng. Bạn nên đặt lịch khám "
-        f"để được bác sĩ tư vấn chi tiết hơn."
-    )
+        # Không khớp từ khóa nào → mặc định đặt lịch thường
+        return (
+            f"📋 KẾT QUẢ PHÂN LOẠI KHẨN CẤP:\n"
+            f"   Triệu chứng: {symptoms}\n"
+            f"   Mức độ: 🟢 CÓ THỂ ĐẶT LỊCH THƯỜNG\n"
+            f"   💡 Lời khuyên: Triệu chứng chưa rõ ràng. Bạn nên đặt lịch khám "
+            f"để được bác sĩ tư vấn chi tiết hơn."
+        )
+    except Exception as e:
+        return f"LỖI: Đã xảy ra lỗi khi phân loại triệu chứng: {e}"
 
 
 # ============================================================
@@ -295,48 +299,52 @@ def suggest_specialty(symptoms: str) -> str:
     Returns:
         str: Danh sách chuyên khoa được gợi ý kèm lý do, hoặc thông báo lỗi.
     """
-    if not symptoms or not symptoms.strip():
-        return "LỖI: Vui lòng mô tả triệu chứng để gợi ý chuyên khoa phù hợp."
+    try:
+        if not symptoms or not str(symptoms).strip():
+            return "LỖI: Vui lòng mô tả triệu chứng để gợi ý chuyên khoa phù hợp."
 
-    symptoms_lower = symptoms.lower().strip()
-    suggestions = []
+        symptoms = str(symptoms)
+        symptoms_lower = symptoms.lower().strip()
+        suggestions = []
 
-    for specialty, keywords in SPECIALTY_MAP.items():
-        matched = [kw for kw in keywords if kw in symptoms_lower]
-        if matched:
-            suggestions.append({
-                "specialty": specialty,
-                "matched_keywords": matched
-            })
+        for specialty, keywords in SPECIALTY_MAP.items():
+            matched = [kw for kw in keywords if kw in symptoms_lower]
+            if matched:
+                suggestions.append({
+                    "specialty": specialty,
+                    "matched_keywords": matched
+                })
 
-    if not suggestions:
-        return (
-            f"🏥 GỢI Ý CHUYÊN KHOA:\n"
-            f"   Triệu chứng: {symptoms}\n"
-            f"   Kết quả: Không tìm thấy chuyên khoa phù hợp từ triệu chứng mô tả.\n"
-            f"   💡 Gợi ý: Bạn nên đặt lịch khám tại khoa Nội tổng quát "
-            f"để được bác sĩ thăm khám và chuyển chuyên khoa phù hợp."
-        )
+        if not suggestions:
+            return (
+                f"🏥 GỢI Ý CHUYÊN KHOA:\n"
+                f"   Triệu chứng: {symptoms}\n"
+                f"   Kết quả: Không tìm thấy chuyên khoa phù hợp từ triệu chứng mô tả.\n"
+                f"   💡 Gợi ý: Bạn nên đặt lịch khám tại khoa Nội tổng quát "
+                f"để được bác sĩ thăm khám và chuyển chuyên khoa phù hợp."
+            )
 
-    result_lines = [
-        f"🏥 GỢI Ý CHUYÊN KHOA:",
-        f"   Triệu chứng: {symptoms}",
-        f"   Số chuyên khoa phù hợp: {len(suggestions)}",
-        ""
-    ]
+        result_lines = [
+            f"🏥 GỢI Ý CHUYÊN KHOA:",
+            f"   Triệu chứng: {symptoms}",
+            f"   Số chuyên khoa phù hợp: {len(suggestions)}",
+            ""
+        ]
 
-    for i, sug in enumerate(suggestions, 1):
-        result_lines.append(
-            f"   {i}. Khoa {sug['specialty']} "
-            f"(dựa trên: {', '.join(sug['matched_keywords'])})"
-        )
+        for i, sug in enumerate(suggestions, 1):
+            result_lines.append(
+                f"   {i}. Khoa {sug['specialty']} "
+                f"(dựa trên: {', '.join(sug['matched_keywords'])})"
+            )
 
-    if len(suggestions) > 1:
-        result_lines.append(
-            f"\n   💡 Gợi ý: Nên ưu tiên khám khoa {suggestions[0]['specialty']} trước."
-        )
+        if len(suggestions) > 1:
+            result_lines.append(
+                f"\n   💡 Gợi ý: Nên ưu tiên khám khoa {suggestions[0]['specialty']} trước."
+            )
 
-    return "\n".join(result_lines)
+        return "\n".join(result_lines)
+    except Exception as e:
+        return f"LỖI: Đã xảy ra lỗi khi gợi ý chuyên khoa: {e}"
 
 
 # ============================================================
@@ -361,78 +369,84 @@ def find_available_doctors(specialty: str, location: str, date: str) -> str:
     Returns:
         str: Danh sách bác sĩ khả dụng kèm thông tin chi tiết, hoặc thông báo lỗi.
     """
-    # Kiểm tra tham số đầu vào
-    if not specialty or not specialty.strip():
-        return "LỖI: Vui lòng cung cấp tên chuyên khoa cần tìm (VD: 'Tim mạch', 'Da liễu')."
+    try:
+        # Kiểm tra tham số đầu vào
+        if not specialty or not str(specialty).strip():
+            return "LỖI: Vui lòng cung cấp tên chuyên khoa cần tìm (VD: 'Tim mạch', 'Da liễu')."
 
-    if not location or not location.strip():
-        return "LỖI: Vui lòng cung cấp địa điểm muốn khám (VD: 'Hà Nội', 'TP.HCM')."
+        if not location or not str(location).strip():
+            return "LỖI: Vui lòng cung cấp địa điểm muốn khám (VD: 'Hà Nội', 'TP.HCM')."
 
-    if not date or not date.strip():
-        return "LỖI: Vui lòng cung cấp ngày muốn khám theo định dạng YYYY-MM-DD."
+        if not date or not str(date).strip():
+            return "LỖI: Vui lòng cung cấp ngày muốn khám theo định dạng YYYY-MM-DD."
 
-    # Chuẩn hóa tham số
-    specialty_lower = specialty.lower().strip()
-    location_lower = location.lower().strip()
+        # Chuẩn hóa tham số
+        specialty = str(specialty)
+        location = str(location)
+        date = str(date)
+        specialty_lower = specialty.lower().strip()
+        location_lower = location.lower().strip()
 
-    # Validate định dạng ngày cơ bản
-    date = date.strip()
-    parts = date.split("-")
-    if len(parts) != 3 or not all(p.isdigit() for p in parts):
-        return (
-            f"LỖI: Ngày '{date}' không đúng định dạng. "
-            f"Vui lòng nhập theo định dạng YYYY-MM-DD (VD: '2026-07-29')."
-        )
+        # Validate định dạng ngày cơ bản
+        date = date.strip()
+        parts = date.split("-")
+        if len(parts) != 3 or not all(p.isdigit() for p in parts):
+            return (
+                f"LỖI: Ngày '{date}' không đúng định dạng. "
+                f"Vui lòng nhập theo định dạng YYYY-MM-DD (VD: '2026-07-29')."
+            )
 
-    year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
-    if month < 1 or month > 12:
-        return f"LỖI: Tháng '{month}' không hợp lệ. Tháng phải từ 1 đến 12."
-    if day < 1 or day > 31:
-        return f"LỖI: Ngày '{day}' không hợp lệ. Ngày phải từ 1 đến 31."
+        year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+        if month < 1 or month > 12:
+            return f"LỖI: Tháng '{month}' không hợp lệ. Tháng phải từ 1 đến 12."
+        if day < 1 or day > 31:
+            return f"LỖI: Ngày '{day}' không hợp lệ. Ngày phải từ 1 đến 31."
 
-    # Tìm bác sĩ phù hợp
-    found_doctors = []
-    for doc in MOCK_DOCTORS:
-        spec_match = doc["specialty"].lower() == specialty_lower
-        loc_match = (
-            location_lower in doc["location"].lower()
-            or doc["location"].lower() in location_lower
-        )
-        if spec_match and loc_match:
-            slots = doc["schedule"].get(date, [])
-            if slots:
-                found_doctors.append({
-                    "doctor": doc,
-                    "available_slots": slots
-                })
+        # Tìm bác sĩ phù hợp
+        found_doctors = []
+        for doc in MOCK_DOCTORS:
+            spec_match = doc["specialty"].lower() == specialty_lower
+            loc_match = (
+                location_lower in doc["location"].lower()
+                or doc["location"].lower() in location_lower
+            )
+            if spec_match and loc_match:
+                slots = doc["schedule"].get(date, [])
+                if slots:
+                    found_doctors.append({
+                        "doctor": doc,
+                        "available_slots": slots
+                    })
 
-    if not found_doctors:
-        return (
-            f"🔍 KẾT QUẢ TÌM BÁC SĨ:\n"
-            f"   Chuyên khoa: {specialty} | Khu vực: {location} | Ngày: {date}\n"
-            f"   ❌ Không tìm thấy bác sĩ nào phù hợp.\n"
-            f"   💡 Gợi ý: Hãy thử tìm ở ngày khác hoặc khu vực lân cận."
-        )
+        if not found_doctors:
+            return (
+                f"🔍 KẾT QUẢ TÌM BÁC SĨ:\n"
+                f"   Chuyên khoa: {specialty} | Khu vực: {location} | Ngày: {date}\n"
+                f"   ❌ Không tìm thấy bác sĩ nào phù hợp.\n"
+                f"   💡 Gợi ý: Hãy thử tìm ở ngày khác hoặc khu vực lân cận."
+            )
 
-    result_lines = [
-        f"🔍 KẾT QUẢ TÌM BÁC SĨ:",
-        f"   Chuyên khoa: {specialty} | Khu vực: {location} | Ngày: {date}",
-        f"   ✅ Tìm thấy {len(found_doctors)} bác sĩ phù hợp:",
-        ""
-    ]
-
-    for i, item in enumerate(found_doctors, 1):
-        doc = item["doctor"]
-        slots = item["available_slots"]
-        result_lines.extend([
-            f"   {i}. {doc['name']} (Mã BS: {doc['id']})",
-            f"      🏥 {doc['hospital']} - {doc['location']}",
-            f"      🕐 Khung giờ trống: {', '.join(slots)}",
-            f"      💰 Phí khám: {doc['fee']}",
+        result_lines = [
+            f"🔍 KẾT QUẢ TÌM BÁC SĨ:",
+            f"   Chuyên khoa: {specialty} | Khu vực: {location} | Ngày: {date}",
+            f"   ✅ Tìm thấy {len(found_doctors)} bác sĩ phù hợp:",
             ""
-        ])
+        ]
 
-    return "\n".join(result_lines)
+        for i, item in enumerate(found_doctors, 1):
+            doc = item["doctor"]
+            slots = item["available_slots"]
+            result_lines.extend([
+                f"   {i}. {doc['name']} (Mã BS: {doc['id']})",
+                f"      🏥 {doc['hospital']} - {doc['location']}",
+                f"      🕐 Khung giờ trống: {', '.join(slots)}",
+                f"      💰 Phí khám: {doc['fee']}",
+                ""
+            ])
+
+        return "\n".join(result_lines)
+    except Exception as e:
+        return f"LỖI: Đã xảy ra lỗi khi tìm bác sĩ: {e}"
 
 
 # ============================================================
@@ -459,98 +473,101 @@ def book_appointment(patient_id: str, doctor_id: str, time_slot: str) -> str:
     """
     global _appointment_counter
 
-    # Kiểm tra tham số đầu vào
-    if not patient_id or not patient_id.strip():
-        return "LỖI: Vui lòng cung cấp mã bệnh nhân (VD: 'BN001')."
+    try:
+        # Kiểm tra tham số đầu vào
+        if not patient_id or not str(patient_id).strip():
+            return "LỖI: Vui lòng cung cấp mã bệnh nhân (VD: 'BN001')."
 
-    if not doctor_id or not doctor_id.strip():
-        return "LỖI: Vui lòng cung cấp mã bác sĩ (VD: 'BS001')."
+        if not doctor_id or not str(doctor_id).strip():
+            return "LỖI: Vui lòng cung cấp mã bác sĩ (VD: 'BS001')."
 
-    if not time_slot or not time_slot.strip():
-        return (
-            "LỖI: Vui lòng cung cấp khung giờ đặt lịch "
-            "theo định dạng 'YYYY-MM-DD HH:MM' (VD: '2026-07-29 08:00')."
-        )
-
-    patient_id = patient_id.strip()
-    doctor_id = doctor_id.strip().upper()
-    time_slot = time_slot.strip()
-
-    # Tìm bác sĩ theo ID
-    target_doctor = None
-    for doc in MOCK_DOCTORS:
-        if doc["id"] == doctor_id:
-            target_doctor = doc
-            break
-
-    if not target_doctor:
-        return (
-            f"LỖI: Không tìm thấy bác sĩ với mã '{doctor_id}'. "
-            f"Vui lòng kiểm tra lại mã bác sĩ."
-        )
-
-    # Phân tích time_slot → ngày + giờ
-    slot_parts = time_slot.split(" ")
-    if len(slot_parts) != 2:
-        return (
-            f"LỖI: Khung giờ '{time_slot}' không đúng định dạng. "
-            f"Vui lòng nhập 'YYYY-MM-DD HH:MM' (VD: '2026-07-29 08:00')."
-        )
-
-    date_part, time_part = slot_parts[0], slot_parts[1]
-
-    # Kiểm tra ngày có trong lịch bác sĩ không
-    if date_part not in target_doctor["schedule"]:
-        return (
-            f"LỖI: Bác sĩ {target_doctor['name']} không có lịch khám ngày {date_part}.\n"
-            f"   Các ngày có lịch: {', '.join(target_doctor['schedule'].keys())}"
-        )
-
-    # Kiểm tra khung giờ có trống không
-    available_slots = target_doctor["schedule"][date_part]
-    if time_part not in available_slots:
-        return (
-            f"LỖI: Khung giờ {time_part} ngày {date_part} đã được đặt "
-            f"hoặc không có trong lịch bác sĩ {target_doctor['name']}.\n"
-            f"   Các khung giờ trống ngày {date_part}: {', '.join(available_slots)}"
-        )
-
-    # Kiểm tra bệnh nhân đã có lịch trùng chưa
-    for appt_id, appt in BOOKED_APPOINTMENTS.items():
-        if appt["patient_id"] == patient_id and appt["time_slot"] == time_slot:
+        if not time_slot or not str(time_slot).strip():
             return (
-                f"LỖI: Bệnh nhân {patient_id} đã có lịch khám vào {time_slot} "
-                f"(Mã lịch: {appt_id}). Không thể đặt trùng."
+                "LỖI: Vui lòng cung cấp khung giờ đặt lịch "
+                "theo định dạng 'YYYY-MM-DD HH:MM' (VD: '2026-07-29 08:00')."
             )
 
-    # Đặt lịch thành công
-    _appointment_counter += 1
-    appointment_id = f"LK{_appointment_counter:04d}"
+        patient_id = str(patient_id).strip()
+        doctor_id = str(doctor_id).strip().upper()
+        time_slot = str(time_slot).strip()
 
-    BOOKED_APPOINTMENTS[appointment_id] = {
-        "patient_id": patient_id,
-        "doctor_id": doctor_id,
-        "doctor_name": target_doctor["name"],
-        "specialty": target_doctor["specialty"],
-        "hospital": target_doctor["hospital"],
-        "time_slot": time_slot,
-        "status": "confirmed"
-    }
+        # Tìm bác sĩ theo ID
+        target_doctor = None
+        for doc in MOCK_DOCTORS:
+            if doc["id"] == doctor_id:
+                target_doctor = doc
+                break
 
-    # Xóa khung giờ khỏi danh sách trống
-    target_doctor["schedule"][date_part].remove(time_part)
+        if not target_doctor:
+            return (
+                f"LỖI: Không tìm thấy bác sĩ với mã '{doctor_id}'. "
+                f"Vui lòng kiểm tra lại mã bác sĩ."
+            )
 
-    return (
-        f"✅ ĐẶT LỊCH KHÁM THÀNH CÔNG!\n"
-        f"   📌 Mã lịch hẹn: {appointment_id}\n"
-        f"   👤 Bệnh nhân: {patient_id}\n"
-        f"   👨‍⚕️ Bác sĩ: {target_doctor['name']} ({doctor_id})\n"
-        f"   🏥 Bệnh viện: {target_doctor['hospital']}\n"
-        f"   📅 Khoa: {target_doctor['specialty']}\n"
-        f"   🕐 Thời gian: {time_slot}\n"
-        f"   💰 Phí khám: {target_doctor['fee']}\n"
-        f"   ⚠️ Lưu ý: Vui lòng đến trước giờ hẹn 15 phút để làm thủ tục."
-    )
+        # Phân tích time_slot → ngày + giờ
+        slot_parts = time_slot.split(" ")
+        if len(slot_parts) != 2:
+            return (
+                f"LỖI: Khung giờ '{time_slot}' không đúng định dạng. "
+                f"Vui lòng nhập 'YYYY-MM-DD HH:MM' (VD: '2026-07-29 08:00')."
+            )
+
+        date_part, time_part = slot_parts[0], slot_parts[1]
+
+        # Kiểm tra ngày có trong lịch bác sĩ không
+        if date_part not in target_doctor["schedule"]:
+            return (
+                f"LỖI: Bác sĩ {target_doctor['name']} không có lịch khám ngày {date_part}.\n"
+                f"   Các ngày có lịch: {', '.join(target_doctor['schedule'].keys())}"
+            )
+
+        # Kiểm tra khung giờ có trống không
+        available_slots = target_doctor["schedule"][date_part]
+        if time_part not in available_slots:
+            return (
+                f"LỖI: Khung giờ {time_part} ngày {date_part} đã được đặt "
+                f"hoặc không có trong lịch bác sĩ {target_doctor['name']}.\n"
+                f"   Các khung giờ trống ngày {date_part}: {', '.join(available_slots)}"
+            )
+
+        # Kiểm tra bệnh nhân đã có lịch trùng chưa
+        for appt_id, appt in BOOKED_APPOINTMENTS.items():
+            if appt["patient_id"] == patient_id and appt["time_slot"] == time_slot:
+                return (
+                    f"LỖI: Bệnh nhân {patient_id} đã có lịch khám vào {time_slot} "
+                    f"(Mã lịch: {appt_id}). Không thể đặt trùng."
+                )
+
+        # Đặt lịch thành công
+        _appointment_counter += 1
+        appointment_id = f"LK{_appointment_counter:04d}"
+
+        BOOKED_APPOINTMENTS[appointment_id] = {
+            "patient_id": patient_id,
+            "doctor_id": doctor_id,
+            "doctor_name": target_doctor["name"],
+            "specialty": target_doctor["specialty"],
+            "hospital": target_doctor["hospital"],
+            "time_slot": time_slot,
+            "status": "confirmed"
+        }
+
+        # Xóa khung giờ khỏi danh sách trống
+        target_doctor["schedule"][date_part].remove(time_part)
+
+        return (
+            f"✅ ĐẶT LỊCH KHÁM THÀNH CÔNG!\n"
+            f"   📌 Mã lịch hẹn: {appointment_id}\n"
+            f"   👤 Bệnh nhân: {patient_id}\n"
+            f"   👨‍⚕️ Bác sĩ: {target_doctor['name']} ({doctor_id})\n"
+            f"   🏥 Bệnh viện: {target_doctor['hospital']}\n"
+            f"   📅 Khoa: {target_doctor['specialty']}\n"
+            f"   🕐 Thời gian: {time_slot}\n"
+            f"   💰 Phí khám: {target_doctor['fee']}\n"
+            f"   ⚠️ Lưu ý: Vui lòng đến trước giờ hẹn 15 phút để làm thủ tục."
+        )
+    except Exception as e:
+        return f"LỖI: Đã xảy ra lỗi khi đặt lịch khám: {e}"
 
 
 # ============================================================
@@ -571,52 +588,55 @@ def cancel_appointment(appointment_id: str) -> str:
     Returns:
         str: Thông tin xác nhận hủy lịch thành công, hoặc thông báo lỗi chi tiết.
     """
-    if not appointment_id or not appointment_id.strip():
-        return "LỖI: Vui lòng cung cấp mã lịch hẹn cần hủy (VD: 'LK0001')."
+    try:
+        if not appointment_id or not str(appointment_id).strip():
+            return "LỖI: Vui lòng cung cấp mã lịch hẹn cần hủy (VD: 'LK0001')."
 
-    appointment_id = appointment_id.strip().upper()
+        appointment_id = str(appointment_id).strip().upper()
 
-    # Tìm lịch hẹn
-    if appointment_id not in BOOKED_APPOINTMENTS:
+        # Tìm lịch hẹn
+        if appointment_id not in BOOKED_APPOINTMENTS:
+            return (
+                f"LỖI: Không tìm thấy lịch hẹn với mã '{appointment_id}'. "
+                f"Vui lòng kiểm tra lại mã lịch hẹn."
+            )
+
+        appt = BOOKED_APPOINTMENTS[appointment_id]
+
+        # Kiểm tra đã hủy trước đó chưa
+        if appt["status"] == "cancelled":
+            return (
+                f"LỖI: Lịch hẹn {appointment_id} đã được hủy trước đó. "
+                f"Không cần hủy lại."
+            )
+
+        # Hoàn trả khung giờ vào lịch bác sĩ
+        time_slot = appt["time_slot"]
+        slot_parts = time_slot.split(" ")
+        if len(slot_parts) == 2:
+            date_part, time_part = slot_parts[0], slot_parts[1]
+            for doc in MOCK_DOCTORS:
+                if doc["id"] == appt["doctor_id"]:
+                    if date_part in doc["schedule"]:
+                        doc["schedule"][date_part].append(time_part)
+                        doc["schedule"][date_part].sort()
+                    break
+
+        # Cập nhật trạng thái
+        appt["status"] = "cancelled"
+
         return (
-            f"LỖI: Không tìm thấy lịch hẹn với mã '{appointment_id}'. "
-            f"Vui lòng kiểm tra lại mã lịch hẹn."
+            f"🗑️ HỦY LỊCH KHÁM THÀNH CÔNG!\n"
+            f"   📌 Mã lịch hẹn: {appointment_id}\n"
+            f"   👤 Bệnh nhân: {appt['patient_id']}\n"
+            f"   👨‍⚕️ Bác sĩ: {appt['doctor_name']} ({appt['doctor_id']})\n"
+            f"   🏥 Bệnh viện: {appt['hospital']}\n"
+            f"   📅 Khoa: {appt['specialty']}\n"
+            f"   🕐 Thời gian đã hủy: {appt['time_slot']}\n"
+            f"   ✅ Khung giờ đã được hoàn trả vào lịch trống của bác sĩ."
         )
-
-    appt = BOOKED_APPOINTMENTS[appointment_id]
-
-    # Kiểm tra đã hủy trước đó chưa
-    if appt["status"] == "cancelled":
-        return (
-            f"LỖI: Lịch hẹn {appointment_id} đã được hủy trước đó. "
-            f"Không cần hủy lại."
-        )
-
-    # Hoàn trả khung giờ vào lịch bác sĩ
-    time_slot = appt["time_slot"]
-    slot_parts = time_slot.split(" ")
-    if len(slot_parts) == 2:
-        date_part, time_part = slot_parts[0], slot_parts[1]
-        for doc in MOCK_DOCTORS:
-            if doc["id"] == appt["doctor_id"]:
-                if date_part in doc["schedule"]:
-                    doc["schedule"][date_part].append(time_part)
-                    doc["schedule"][date_part].sort()
-                break
-
-    # Cập nhật trạng thái
-    appt["status"] = "cancelled"
-
-    return (
-        f"🗑️ HỦY LỊCH KHÁM THÀNH CÔNG!\n"
-        f"   📌 Mã lịch hẹn: {appointment_id}\n"
-        f"   👤 Bệnh nhân: {appt['patient_id']}\n"
-        f"   👨‍⚕️ Bác sĩ: {appt['doctor_name']} ({appt['doctor_id']})\n"
-        f"   🏥 Bệnh viện: {appt['hospital']}\n"
-        f"   📅 Khoa: {appt['specialty']}\n"
-        f"   🕐 Thời gian đã hủy: {appt['time_slot']}\n"
-        f"   ✅ Khung giờ đã được hoàn trả vào lịch trống của bác sĩ."
-    )
+    except Exception as e:
+        return f"LỖI: Đã xảy ra lỗi khi hủy lịch hẹn: {e}"
 
 
 # ============================================================
