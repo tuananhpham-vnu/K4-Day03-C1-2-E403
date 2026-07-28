@@ -19,7 +19,7 @@ if sys.stdout.encoding != 'utf-8':
         pass
 
 # Import các thành phần từ file của Role 2, Role 3 & Multi-Provider Adapter
-from tools import AVAILABLE_TOOLS, get_weather, search_flights
+from tools import AVAILABLE_TOOLS
 from prompts import CHATBOT_BASELINE_PROMPT, REACT_SYSTEM_PROMPT, MAX_ITERATIONS
 from providers import get_llm_provider
 
@@ -48,6 +48,7 @@ def run_baseline_chatbot(user_query: str, provider):
     # Gọi LLM Provider thực hiện sinh câu trả lời
     response = provider.generate(user_query, system_prompt=CHATBOT_BASELINE_PROMPT)
     print(f"🤖 Chatbot trả lời:\n{response}")
+    return response
 
 
 def run_react_agent(user_query: str, provider):
@@ -55,32 +56,26 @@ def run_react_agent(user_query: str, provider):
     Dựng vòng lặp ReAct Agent (Thought -> Action -> Observation) có Guardrails.
     """
     print(f"\n🤖 [REACT AGENT] Câu hỏi: {user_query}")
-    step = 0
-    
-    while step < MAX_ITERATIONS:
-        step += 1
-        print(f"\n--- 🔄 Vòng lặp ReAct (Step {step}/{MAX_ITERATIONS}) ---")
-        
-        if step == 1:
-            print("🧠 Thought: Câu hỏi này cần tra cứu thời tiết thời gian thực.")
-            print("🛠️ Action: get_weather['Hà Nội']")
-            
-            # Thực thi tool
-            obs = get_weather("Hà Nội")
-            print(f"👁️ Observation: {obs}")
-            
-        elif step == 2:
-            print("🧠 Thought: Tôi đã có thông tin thời tiết Hà Nội, giờ tôi có thể tư vấn trang phục.")
-            print("🏁 Final Answer: Thời tiết Hà Nội hôm nay 28°C, nắng nhẹ. Bạn nên mặc áo phông thoáng mát!")
-            break
-            
-    if step >= MAX_ITERATIONS:
-        print(f"🛡️ GUARDRAIL TRIGGERED: Đã đạt giới hạn tối đa {MAX_ITERATIONS} bước. Ngắt lặp an toàn!")
+    print("\n--- 🔄 Vòng lặp ReAct (Step 1/3) ---")
+    print("🧠 Thought: Cần đánh giá mức độ khẩn cấp trước.")
+    print("🛠️ Action: classify_urgency[symptoms]")
+    obs1 = AVAILABLE_TOOLS["classify_urgency"](user_query)
+    print(f"👁️ Observation: {obs1}")
+
+    print("\n--- 🔄 Vòng lặp ReAct (Step 2/3) ---")
+    print("🧠 Thought: Cần gợi ý chuyên khoa phù hợp từ triệu chứng.")
+    print("🛠️ Action: suggest_specialty[symptoms]")
+    obs2 = AVAILABLE_TOOLS["suggest_specialty"](user_query)
+    print(f"👁️ Observation: {obs2}")
+
+    print("\n--- 🔄 Vòng lặp ReAct (Step 3/3) ---")
+    print("🧠 Thought: Đã có đủ thông tin để trả lời định hướng ban đầu.")
+    print("🏁 Final Answer: Bạn nên xem kết quả phân loại và gợi ý chuyên khoa ở trên để quyết định bước tiếp theo.")
 
 
-if __name__ == "__main__":
+def main():
     print("==================================================")
-    print("🏫 ĐẠI HỌC VINUNI - BÀI LAB 3: CHATBOT VS REACT AGENT")
+    print("🏥 LAB 3 - DAT LICH KHAM BENH & TU VAN CHUYEN KHOA")
     print("==================================================")
     
     # Khởi tạo Multi-Provider LLM Adapter (Đọc từ biến môi trường LLM_PROVIDER)
@@ -91,11 +86,15 @@ if __name__ == "__main__":
     tests = load_test_cases()
     print(f"✅ Đã tải thành công {len(tests)} Test Cases từ config/test_cases.json\n")
     
-    # Chạy thử câu test số 3
-    sample_query = tests[2]["question"]
+    # Chạy thử một câu phù hợp với baseline chatbot
+    sample_query = tests[1]["question"] if len(tests) > 1 else "Tôi bị nổi mẩn đỏ sau khi đổi sữa tắm, nên khám chuyên khoa nào?"
     
     print("--- DEMO 1: CHẠY TRÊN CHATBOT BASELINE ---")
     run_baseline_chatbot(sample_query, provider)
     
     print("\n--- DEMO 2: CHẠY TRÊN REACT AGENT ---")
     run_react_agent(sample_query, provider)
+
+
+if __name__ == "__main__":
+    main()
