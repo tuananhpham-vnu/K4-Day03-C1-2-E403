@@ -1,7 +1,21 @@
 """
 🛠️ TOOL REGISTRY & SCHEMAS (Dành cho Role 2: Tool & Spec Engineer)
 Nơi khai báo tất cả các "món đồ nghề" mà ReAct Agent có thể gọi.
+classify_urgency(symptoms)
+Phân loại mức độ khẩn cấp từ triệu chứng: cấp cứu ngay, cần khám sớm, hoặc có thể đặt lịch thường.
+
+suggest_specialty(symptoms)
+Gợi ý chuyên khoa phù hợp dựa trên triệu chứng, ví dụ: tim mạch, da liễu, tai mũi họng, tiêu hóa.
+
+find_available_doctors(specialty, location, date)
+Tìm danh sách bác sĩ còn lịch trống theo chuyên khoa, địa điểm và ngày khám.
+
+book_appointment(patient_id, doctor_id, time_slot)
+Đặt một lịch khám cụ thể cho bệnh nhân với bác sĩ và khung giờ đã chọn.
+
+cancel_appointment(appointment_id)
 """
+
 
 def get_weather(location: str) -> str:
     """
